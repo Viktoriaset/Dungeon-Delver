@@ -25,6 +25,9 @@ public class Tile : MonoBehaviour
         if (eTileNum == -1)
         {
             eTileNum = TileCamera.GET_MAP(x, y);
+        } else
+        {
+            TileCamera.SET_MAP(x, y, eTileNum);
         }
         tileNum = eTileNum;
         if (tileNum == -1)
