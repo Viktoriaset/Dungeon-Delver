@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 [RequireComponent(typeof(Rigidbody))]
 public class Dray : MonoBehaviour, IFacindMover, IKeyMaster
 {
-    public enum eMode { idle, move, attack, transition }
+    public enum eMode { idle, move, attack, transition, knockBack }
 
     [Header("Set in inspector")]
     public float speed = 5;
@@ -14,13 +14,27 @@ public class Dray : MonoBehaviour, IFacindMover, IKeyMaster
     public float attackDelay = 0.5f;
     public float transitionDelay = 0.5f;
 
+    public int maxHealth = 10;
+    public float knockBackSpeed = 10;
+    public float knockBackDuration = 0.25f;
+    public float invincibleDuration = 0.5f;
+
     [Header("Set dynamically")]
     public int dirHeld = -1;
     public int facing = 1;
     public eMode mode = eMode.idle;
+    public bool invincible = false;
 
     [SerializeField]
     private int numKeys = 0;
+    [SerializeField]
+    private int _health;
+
+    public int health
+    {
+        get => _health;
+        set => _health = value;
+    }
 
     private float timeAtkDone = 0;
     private float timeAtkNext = 0;
@@ -28,6 +42,11 @@ public class Dray : MonoBehaviour, IFacindMover, IKeyMaster
     private float transitionDone = 0;
     private Vector2 transitionPos;
 
+    private float knockBackDone = 0;
+    private float invincibleDone = 0;
+    private Vector3 knockBackVel;
+
+    private SpriteRenderer sRend;
     private Rigidbody rb;
     private Animator animator;
     private InRoom inRm;
@@ -37,13 +56,23 @@ public class Dray : MonoBehaviour, IFacindMover, IKeyMaster
 
     private void Awake()
     {
+        sRend = GetComponent<SpriteRenderer>();
         rb = GetComponent<Rigidbody>();
         animator = GetComponent<Animator>();
         inRm = GetComponent<InRoom>();
+        health = maxHealth;
     }
 
     private void Update()
     {
+        if (invincible && Time.time > invincibleDone) invincible = false;
+        sRend.color = invincible ? Color.red : Color.white;
+        if (mode == eMode.knockBack)
+        {
+            rb.velocity = knockBackVel;
+            if (Time.time < knockBackDone) return;
+        }
+
         if (mode == eMode.transition)
         {
             rb.velocity = Vector3.zero;
@@ -149,6 +178,38 @@ public class Dray : MonoBehaviour, IFacindMover, IKeyMaster
                 mode = eMode.transition;
                 transitionDone = Time.time + transitionDelay;
             }
+        }
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (invincible) return;
+
+        DamageEffect dEf = collision.gameObject.GetComponent<DamageEffect>();
+        if (dEf == null) return;
+
+        health -= dEf.damage;
+        invincible = true;
+        invincibleDone = Time.time + invincibleDuration;
+
+        if (dEf.knockBack)
+        {
+            Vector3 delta = transform.position - collision.transform.position;
+            if (Mathf.Abs(delta.x) >= Mathf.Abs(delta.y))
+            {
+                delta.x = (delta.x > 0) ? 1 : -1;
+                delta.y = 0;
+            } else
+            {
+                delta.x = 0;
+                delta.y = (delta.y > 0) ? 1 : -1;
+            }
+
+            knockBackVel = delta * knockBackSpeed;
+            rb.velocity = knockBackVel;
+
+            mode = eMode.knockBack;
+            knockBackDone = Time.time + knockBackDuration;
         }
     }
 

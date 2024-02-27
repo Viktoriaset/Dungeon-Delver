@@ -35,8 +35,11 @@ public class Skeletos : Enemy, IFacindMover
         inRm = GetComponent<InRoom>();
     }
 
-    private void Update()
+    override protected void Update()
     {
+        base.Update();
+        if (knockBack) return;
+
         if (Time.time >= timeNextDecision)
         {
             DecideDirection();

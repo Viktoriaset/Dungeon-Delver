@@ -9,9 +9,18 @@ public class Enemy : MonoBehaviour
 
     [Header("Set in inspector: Enemy")]
     public float maxHealth = 1;
+    public float knockBackSpeed = 10;
+    public float knockBackDuration = 0.25f;
+    public float invincibleDuration = 0.5f;
 
     [Header("Set dynamically: Enemy")]
     public float health;
+    public bool invincible = false;
+    public bool knockBack = false;
+
+    private float invincibleDone = 0;
+    private float knockBackDone = 0;
+    private Vector3 knockBackVel;
 
     protected Animator animator;
     protected Rigidbody rb;
@@ -23,5 +32,59 @@ public class Enemy : MonoBehaviour
         animator = GetComponent<Animator>();
         rb = GetComponent<Rigidbody>();
         sRend = GetComponent<SpriteRenderer>();
+    }
+
+    protected virtual void Update()
+    {
+        if (invincible && Time.time > invincibleDone) invincible = false;
+        sRend.color = invincible ? Color.red : Color.white;
+        if (knockBack)
+        {
+            rb.velocity = knockBackVel;
+            if (Time.time < knockBackDone) return;
+        }
+
+        animator.speed = 1;
+        knockBack = false;
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (invincible) return;
+
+        DamageEffect dEf = other.gameObject.GetComponent<DamageEffect>();
+        if (dEf == null) return;
+
+        health -= dEf.damage;
+        if (health <= 0) Die();
+
+        invincible = true;
+        invincibleDone = Time.time + invincibleDuration;
+
+        if (dEf.knockBack)
+        {
+            Vector3 delta = transform.position - other.transform.root.position;
+            if (Mathf.Abs(delta.x) >= Mathf.Abs(delta.y))
+            {
+                delta.x = (delta.x > 0) ? 1 : -1;
+                delta.y = 0;
+            } else
+            {
+                delta.x = 0;
+                delta.y = (delta.y > 0) ? 1 : -1;
+            }
+
+            knockBackVel = delta * knockBackSpeed;
+            rb.velocity = knockBackVel;
+
+            knockBack = true;
+            knockBackDone = Time.time + knockBackDuration;
+            animator.speed = 0;
+        }
+    }
+
+    private void Die()
+    {
+        Destroy(gameObject);
     }
 }
