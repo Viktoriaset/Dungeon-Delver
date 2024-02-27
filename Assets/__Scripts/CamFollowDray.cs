@@ -41,6 +41,13 @@ public class CamFollowDray : MonoBehaviour
         }
     }
 
+    private void LateUpdate()
+    {
+        Vector3 tPos = transform.position;
+        tPos.z = -10;
+        transform.position = tPos;
+    }
+
     private void TransitionTo(Vector2 rm)
     {
         p0 = transform.position;

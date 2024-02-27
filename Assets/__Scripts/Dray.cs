@@ -24,6 +24,9 @@ public class Dray : MonoBehaviour, IFacindMover, IKeyMaster
     public int facing = 1;
     public eMode mode = eMode.idle;
     public bool invincible = false;
+    public bool hasGrappler = false;
+    public Vector3 lastSafeLoc;
+    public int lastSafeFacing;
 
     [SerializeField]
     private int numKeys = 0;
@@ -61,6 +64,8 @@ public class Dray : MonoBehaviour, IFacindMover, IKeyMaster
         animator = GetComponent<Animator>();
         inRm = GetComponent<InRoom>();
         health = maxHealth;
+        lastSafeLoc = transform.position;
+        lastSafeFacing = facing;
     }
 
     private void Update()
@@ -175,6 +180,8 @@ public class Dray : MonoBehaviour, IFacindMover, IKeyMaster
                 roomNum = rm;
                 transitionPos = InRoom.DOORS[(doorNum + 2) % 4];
                 roomPos = transitionPos;
+                lastSafeLoc = transform.position;
+                lastSafeFacing = facing;
                 mode = eMode.transition;
                 transitionDone = Time.time + transitionDelay;
             }
@@ -211,6 +218,39 @@ public class Dray : MonoBehaviour, IFacindMover, IKeyMaster
             mode = eMode.knockBack;
             knockBackDone = Time.time + knockBackDuration;
         }
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        PickUp pup = other.GetComponent<PickUp>();
+        if (pup == null) return;
+
+        switch(pup.itemType)
+        {
+            case PickUp.eType.health:
+                health = Mathf.Min(health + 2, maxHealth);
+                break;
+
+            case PickUp.eType.key:
+                KeyCount++;
+                break;
+
+            case PickUp.eType.grappler:
+                hasGrappler = true;
+                break;
+        }
+
+        Destroy(other.gameObject);
+    }
+
+    public void ResetInRoom(int healthLoss = 0)
+    {
+        transform.position = lastSafeLoc;
+        facing = lastSafeFacing;
+        health -= healthLoss;
+
+        invincible = true;
+        invincibleDone = Time.time + invincibleDuration;
     }
 
     public int GetFacing()

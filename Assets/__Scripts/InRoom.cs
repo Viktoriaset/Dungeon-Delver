@@ -46,10 +46,12 @@ public class InRoom : MonoBehaviour
 
         set
         {
-            Vector2 rm = roomNum;
+            Vector3 rm = roomNum;
             rm.x *= ROOM_W;
             rm.y *= ROOM_H;
-            rm += value;
+            rm.x += value.x;
+            rm.y += value.y;
+            rm.z = transform.position.z;
             transform.position = rm;
         }
     }
